@@ -37,6 +37,10 @@ function App() {
     return () => unsubscribe;
   }, []);
 
+  if (loading && currUser) {
+    return <Text>Loading....</Text>;
+  }
+
   return (
     <NavigationContainer>
       {!currUser ? (

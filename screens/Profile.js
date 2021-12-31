@@ -11,7 +11,10 @@ import {
 import Constants from "expo-constants";
 import GlobalContext from "../context/Context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { pickImage, askForPermission } from "../utils";
+import { pickImage, askForPermission, uploadImage } from "../utils";
+import { auth, db } from "../firebase";
+import { updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function Profile() {
   const {
@@ -23,7 +26,33 @@ export default function Profile() {
 
   const [permissionStatus, setPermissionStatus] = useState(null);
 
-  function handlePress() {}
+  async function handlePress() {
+    console.log("called");
+    const user = auth.currentUser;
+    let photoURL;
+    if (selectedImage) {
+      const { url } = await uploadImage(
+        selectedImage,
+        `images/${user.uid}`,
+        "profilePicture"
+      );
+      photoURL = url;
+    }
+
+    const userData = {
+      displayName,
+      email: user.email,
+    };
+
+    if (photoURL) {
+      userData.photoURL = photoURL;
+    }
+    await Promise.all([
+      updateProfile(user, userData),
+      setDoc(doc(db, "users", user.uid), { ...userData, uid: user.uid })
+    ]);
+    console.log("Done");
+  }
 
   useEffect(() => {
     (async () => {

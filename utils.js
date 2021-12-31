@@ -1,13 +1,46 @@
 import * as ImagePicker from "expo-image-picker";
+import { getDownloadURL, uploadBytes, ref } from "firebase/storage";
+import "react-native-get-random-values";
+import { nanoid } from "nanoid";
+import { storage } from "./firebase";
 
-export async function pickImage(){
+export async function pickImage() {
   let result = ImagePicker.launchCameraAsync();
   return result;
 }
 
-export async function askForPermission(){
-  const {status} = await ImagePicker.requestCameraPermissionsAsync();
+export async function askForPermission() {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
   return status;
+}
+
+export async function uploadImage(uri, path, fname) {
+  const blob = new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      resolve(xhr.response);
+    };
+    xhr.onerror = function (e) {
+      console.log(e);
+      reject(new TypeError("Network Request Failed"));
+    };
+    xhr.responseType = "blob";
+    xhr.open("GET", uri, true);
+    xhr.send(null);
+  });
+
+  const fileName = fname || nanoid();
+  const imageRef = ref(storage, `${path}/${fileName}.jpeg`);
+
+  const snapshot = await uploadBytes(imageRef, blob, {
+    contentType: "image/jpeg",
+  });
+
+  blob.close();
+
+  const url = await getDownloadURL(snapshot.ref);
+
+  return { url, fileName };
 }
 
 const palette = {
