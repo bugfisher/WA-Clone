@@ -13,7 +13,7 @@ const firebaseConfig = {
   projectId: "wp-clone-7f3ae",
   storageBucket: "wp-clone-7f3ae.appspot.com",
   messagingSenderId: "43020098328",
-  appId: "1:43020098328:web:1c56f5cf866d1b72c65c6d",
+  appId: "1:43020098328:web:1c56f5cf866d1b72c65c6d"
 };
 
 export const app = initializeApp(firebaseConfig);

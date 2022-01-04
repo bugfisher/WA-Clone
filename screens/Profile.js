@@ -11,7 +11,11 @@ import {
 import Constants from "expo-constants";
 import GlobalContext from "../context/Context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { pickImage, askForPermission } from "../utils";
+import { pickImage, askForPermission, uploadImage } from "../utils";
+import { auth, db } from "../firebase";
+import { updateProfile } from "@firebase/auth";
+import { doc, setDoc } from "@firebase/firestore";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Profile() {
   const {
@@ -20,10 +24,43 @@ export default function Profile() {
 
   const [displayName, setDisplayName] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
-
   const [permissionStatus, setPermissionStatus] = useState(null);
+  const navigation = useNavigation();
 
-  function handlePress() {}
+  async function handlePress() {
+    const user = auth.currentUser;
+    let photoURL;
+    if (selectedImage) {
+      const { url } = await uploadImage(
+        selectedImage,
+        `images/${user.uid}`,
+        "profilePicture"
+      );
+      photoURL = url;
+    }
+    const userData = {
+      displayName,
+      email: user.email,
+    };
+    if (photoURL) {
+      userData.photoURL = photoURL;
+    }
+
+    await Promise.all([
+      updateProfile(user, userData),
+      setDoc(doc(db, "users", user.uid), { ...userData, uid: user.uid }),
+    ]);
+    console.log("Profile Picture Uploaded");
+    navigation.navigate("Home");
+
+  }
+
+  async function handleProfilePicture() {
+    const result = await pickImage();
+    if (!result.cancelled) {
+      setSelectedImage(result.uri);
+    }
+  }
 
   useEffect(() => {
     (async () => {

@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import { View, Text, Image, TextInput, Button } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Context from "../context/Context";
-import { signUp } from "../firebase";
+import { signUp,signIn } from "../firebase";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -18,6 +18,7 @@ export default function SignIn() {
       await signUp(email, password);
     }
     if (mode === "signIn") {
+      console.log("called");
       await signIn(email, password);
     }
   }
