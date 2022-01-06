@@ -32,10 +32,25 @@ export default function Chats() {
   }, []);
 
   function getUserB(user, contacts) {
-
     const userContact = contacts.find((c) => c.email === user.email);
+    
+    const q = query(
+      collection(db, "users"),
+      where("email", "==", userContact.email)
+    );
+
+    (async () => {
+      onSnapshot(q, (snapshot) => {
+        if (snapshot.docs.length) {
+          const userDoc = snapshot.docs[0].data();
+          user.photoURL = userDoc.photoURL;
+          user.expoPushToken = userDoc.expoPushToken;
+        }
+      });
+    })();
+
     if (userContact && userContact.contactName) {
-     //console.log("USER1"+JSON.stringify(user));
+      //console.log("USER1"+JSON.stringify(user));
       return { ...user, contactName: userContact.contactName };
     }
     //console.log("USER"+JSON.stringify(user));
