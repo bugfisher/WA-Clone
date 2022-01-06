@@ -18,7 +18,6 @@ export default function SignIn() {
       await signUp(email, password);
     }
     if (mode === "signIn") {
-      console.log("called");
       await signIn(email, password);
     }
   }

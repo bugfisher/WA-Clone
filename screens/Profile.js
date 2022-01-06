@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useContext, useEffect, useState } from "react";
+import * as Notifications from "expo-notifications";
 import {
   View,
   Text,
@@ -25,6 +26,7 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState(null);
+  const [expoPushToken, setExpoPushToken] = useState("");
   const navigation = useNavigation();
 
   async function handlePress() {
@@ -41,6 +43,7 @@ export default function Profile() {
     const userData = {
       displayName,
       email: user.email,
+      expoPushToken: expoPushToken
     };
     if (photoURL) {
       userData.photoURL = photoURL;
@@ -52,7 +55,6 @@ export default function Profile() {
     ]);
     console.log("Profile Picture Uploaded");
     navigation.navigate("Home");
-
   }
 
   async function handleProfilePicture() {
@@ -63,6 +65,10 @@ export default function Profile() {
   }
 
   useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      setExpoPushToken(token);
+      console.log(expoPushToken);
+    });
     (async () => {
       const status = await askForPermission();
       setPermissionStatus(status);
@@ -147,4 +153,30 @@ export default function Profile() {
       </View>
     </React.Fragment>
   );
+}
+
+async function registerForPushNotificationsAsync() {
+  let token;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== "granted") {
+    alert("Failed to get push token for push notification!");
+    return;
+  }
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log("token: " + token);
+
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+  return token;
 }

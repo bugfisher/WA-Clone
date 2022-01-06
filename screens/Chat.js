@@ -4,11 +4,19 @@ import {
   collection,
   doc,
   onSnapshot,
+  query,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { nanoid } from "nanoid";
-import React, { useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -20,6 +28,7 @@ import {
 import GlobalContext from "../context/Context";
 import { auth, db } from "../firebase";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 import {
   Actions,
   Bubble,
@@ -32,12 +41,24 @@ import Spinner from "react-native-loading-spinner-overlay";
 
 const randomId = nanoid();
 
+// Notifications.setNotificationHandler({
+//   handleNotification: async () => ({
+//     shouldShowAlert: false,
+//     shouldPlaySound: true,
+//     shouldSetBadge: true,
+//   }),
+// });
+
 export default function Chat() {
   const {
     theme: { colors },
   } = useContext(GlobalContext);
   const [messages, setMessages] = useState([]);
   const [roomHash, setRoomHash] = useState("");
+  const [notification, setNotification] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const notificationListener = useRef();
+  const responseListener = useRef();
   const { currentUser } = auth;
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImageView, setSeletedImageView] = useState("");
@@ -60,6 +81,17 @@ export default function Chat() {
   const roomMessagesref = collection(db, "rooms", roomId, "messages");
 
   useEffect(() => {
+    // This listener is fired whenever a notification is received while the app is foregrounded
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    // This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
     (async () => {
       if (!room) {
         const currentUserData = {
@@ -96,6 +128,12 @@ export default function Chat() {
         await sendImage(selectedImage.uri, emailHash);
       }
     })();
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
   }, []);
 
   const appendMessages = useCallback(
@@ -108,8 +146,13 @@ export default function Chat() {
   );
 
   async function onSend(messages = []) {
-    //console.log(messages);
-    const writes = messages.map((m) => addDoc(roomMessagesref, m));
+    
+
+    
+
+    const writes = messages.map(async (m) => {
+      await sendPushNotification(userB.userDoc.expoPushToken,m);
+      return addDoc(roomMessagesref, m)});
     const lastMessage = messages[messages.length - 1];
     writes.push(updateDoc(roomRef, { lastMessage }));
     await Promise.all(writes);
@@ -122,6 +165,7 @@ export default function Chat() {
         .filter(({ type }) => type === "added")
         .map(({ doc }) => {
           const message = doc.data();
+
           return { ...message, createdAt: message.createdAt.toDate() };
         })
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -159,6 +203,28 @@ export default function Chat() {
       updateDoc(roomRef, { lastMessage }),
     ]);
     setSpinner(false);
+  }
+
+  async function sendPushNotification(expoPushToken,Text) {
+    console.log("msg", Text);
+    const message = {
+      to: expoPushToken,
+      sound: "default",
+      title: Text.user.name,
+      body: Text.text,
+      data: {},
+    };
+    console.log("Sending", expoPushToken);
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(message),
+    });
+    console.log("Sent");
   }
 
   return (
