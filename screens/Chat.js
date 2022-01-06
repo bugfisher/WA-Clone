@@ -101,26 +101,35 @@ export default function Chat() {
         if (currentUser.photoURL) {
           currentUserData.photoURL = currentUser.photoURL;
         }
+        const q = query(
+          collection(db, "users"),
+          where("email", "==", currentUser.email)
+        );
+        const unsubscribe = await onSnapshot(q, async (snapshot) => {
+          if (snapshot.docs.length) {
+            const userDoc = snapshot.docs[0].data();
+            currentUserData.expoPushToken = userDoc.expoPushToken;
+            const userBData = {
+              displayName: userB.contactName || userB.displayName || "",
+              email: userB.email,
+            };
+            if (userB.userDoc && userB.userDoc.photoURL) {
+              userBData.photoURL = userB.userDoc.photoURL;
+              userBData.expoPushToken = userB.userDoc.expoPushToken;
+            }
 
-        //console.log("UserB",userB);
-        const userBData = {
-          displayName: userB.contactName || userB.displayName || "",
-          email: userB.email,
-        };
-        if (userB.userDoc && userB.userDoc.photoURL) {
-          userBData.photoURL = userB.userDoc.photoURL;
-        }
+            const roomData = {
+              participants: [currentUserData, userBData],
+              participantsArray: [currentUser.email, userB.email],
+            };
 
-        const roomData = {
-          participants: [currentUserData, userBData],
-          participantsArray: [currentUser.email, userB.email],
-        };
-
-        try {
-          await setDoc(roomRef, roomData);
-        } catch (error) {
-          console.log(error);
-        }
+            try {
+              await setDoc(roomRef, roomData);
+            } catch (error) {
+              console.log(error);
+            }
+          }
+        });
       }
       const emailHash = `${currentUser.email}:${userB.email}`;
       setRoomHash(emailHash);
@@ -146,13 +155,10 @@ export default function Chat() {
   );
 
   async function onSend(messages = []) {
-    
-
-    
-
     const writes = messages.map(async (m) => {
-      await sendPushNotification(userB.userDoc.expoPushToken,m);
-      return addDoc(roomMessagesref, m)});
+      await sendPushNotification(userB.expoPushToken, m);
+      return addDoc(roomMessagesref, m);
+    });
     const lastMessage = messages[messages.length - 1];
     writes.push(updateDoc(roomRef, { lastMessage }));
     await Promise.all(writes);
@@ -205,8 +211,8 @@ export default function Chat() {
     setSpinner(false);
   }
 
-  async function sendPushNotification(expoPushToken,Text) {
-    console.log("msg", Text);
+  async function sendPushNotification(expoPushToken, Text) {
+    //console.log("msg", Text);
     const message = {
       to: expoPushToken,
       sound: "default",

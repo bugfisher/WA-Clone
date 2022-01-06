@@ -34,7 +34,12 @@ function ContactPreview({ contact, image }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.docs.length) {
         const userDoc = snapshot.docs[0].data();
-        setUser((prevUser) => ({ ...prevUser, userDoc }));
+        setUser((prevUser) => ({
+          ...prevUser,
+          userDoc,
+          photoURL: userDoc.photoURL,
+          expoPushToken: userDoc.expoPushToken,
+        }));
       }
     });
     return () => unsubscribe();
