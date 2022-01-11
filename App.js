@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useContext, useEffect, useState } from "react";
-import { StyleSheet, Text, View, LogBox } from "react-native";
+import { StyleSheet, Text, View, LogBox, TouchableOpacity } from "react-native";
 import { useAssets } from "expo-asset";
 import { onAuthStateChanged } from "@firebase/auth";
 import { auth } from "./firebase";
@@ -18,6 +18,7 @@ import Contacts from "./screens/Contacts";
 import Chat from "./screens/Chat";
 import ChatHeader from "./components/ChatHeader";
 import Spinner from "react-native-loading-spinner-overlay";
+import { Menu, MenuItem } from "react-native-material-menu";
 
 LogBox.ignoreLogs([
   "Setting a timer for a long period of time",
@@ -30,6 +31,10 @@ const Tab = createMaterialTopTabNavigator();
 function App() {
   const [currUser, setCurrUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [visible, setVisible] = useState(false);
+
+  const hideMenu = () => setVisible(false);
+  const showMenu = () => setVisible(true);
 
   const {
     theme: { colors },
@@ -45,6 +50,8 @@ function App() {
 
     return () => unsubscribe;
   }, []);
+
+  function handleMenuPress() {}
 
   return (
     <NavigationContainer>
@@ -72,7 +79,29 @@ function App() {
           )}
           <Stack.Screen
             name="Home"
-            options={{ title: "WhatsApp" }}
+            options={{
+              title: "WhatsApp",
+              headerRight: () => (
+                <View style={{ marginRight: 10 }}>
+                  <Menu
+                    visible={visible}
+                    anchor={
+                      <TouchableOpacity onPress={showMenu}>
+                        <Ionicons
+                          name="menu-sharp"
+                          size={30}
+                          color={colors.white}
+                        />
+                      </TouchableOpacity>
+                    }
+                    onRequestClose={hideMenu}
+                  >
+                    <MenuItem onPress={hideMenu}>Settings</MenuItem>
+                    <MenuItem onPress={hideMenu}>Logout</MenuItem>
+                  </Menu>
+                </View>
+              ),
+            }}
             component={Home}
           />
           <Stack.Screen
